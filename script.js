@@ -1,4 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Device Detection
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isIPhone = /iPhone/.test(userAgent) && !window.MSStream;
+    const isIPad = /iPad/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isMobile = isIPhone || isIPad;
+
+    // Add device class to body for CSS targeting
+    if (isIPad) {
+        document.body.classList.add('device-ipad');
+    } else if (isIPhone) {
+        document.body.classList.add('device-iphone');
+    }
+
     const boy = document.getElementById('boy');
     const girl = document.getElementById('girl');
     const girlImg = document.getElementById('girlImg');
@@ -54,8 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', startMusicOnInteraction, { once: false });
 
     const FRAME_RATE = 150;
-    const DISPLAY_W = 512;
-    const DISPLAY_H = 680;
+    const DISPLAY_W = 180;
+    const DISPLAY_H = 238;
     const MOVE_SPEED = 1.5;
 
     const SCALED_FULL_W = DISPLAY_W * 2;
@@ -75,22 +88,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     applyMapSize();
 
+    // Flag to ensure map is initialized before game loop
+    let mapInitialized = false;
+
     // Once video metadata loads, resize map — must be larger than viewport for camera scrolling
-    bgVideo.addEventListener('loadedmetadata', () => {
-        MAP_W = Math.max(bgVideo.videoWidth, window.innerWidth * 2);
-        MAP_H = Math.max(bgVideo.videoHeight, window.innerHeight * 3);
+    function initializeMap() {
+        MAP_W = Math.max(bgVideo.videoWidth || window.innerWidth * 2, window.innerWidth * 2);
+        MAP_H = Math.max(bgVideo.videoHeight || window.innerHeight * 3, window.innerHeight * 3);
         applyMapSize();
         updateBounds();
-        // Re-center characters on the new map size
+        // Re-center characters on the new map size (spaced apart to avoid collision)
         girlX = MAP_W * 0.52;
         girlY = MAP_H * 0.45;
-        boyX = MAP_W * 0.42;
-        boyY = MAP_H * 0.45;
+        boyX = MAP_W * 0.30;
+        boyY = MAP_H * 0.50;
         girl.style.left = girlX + 'px';
         girl.style.top = girlY + 'px';
         boy.style.left = boyX + 'px';
         boy.style.top = boyY + 'px';
-    });
+        mapInitialized = true;
+    }
+
+    bgVideo.addEventListener('loadedmetadata', initializeMap);
+
+    // Fallback: initialize after a short delay if video doesn't load
+    setTimeout(() => {
+        if (!mapInitialized) {
+            initializeMap();
+        }
+    }, 500);
 
     const positions = [
         [0, 0],
@@ -187,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const BOY_SPEED = 1.0;
-    const BOY_STOP_DIST = 840;
+    const BOY_STOP_DIST = 200;
 
     // Girl position in WORLD coordinates (on the map)
     let girlX = MAP_W * 0.52;
@@ -356,27 +382,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Camera system — clamp to video edges, zoomed out
+    // Camera system — clamp to video edges, zoomed in to center player
     const ZOOM = 0.5;
 
     function updateCamera() {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
+        // Get screen resolution
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
 
-        // Visible area in map coordinates (larger when zoomed out)
-        const visW = vw / ZOOM;
-        const visH = vh / ZOOM;
+        // For mobile, adjust zoom to show a 9:16 viewport window of the full map
+        let currentZoom = ZOOM;
+        if (isMobile) {
+            // Mobile: zoom to show appropriate portion for 9:16 aspect ratio
+            // Adjust based on height to ensure vertical coverage is good
+            currentZoom = screenHeight / (MAP_H * 0.5);
+        }
 
-        // Camera target: center on girl
-        let camX = girlX + DISPLAY_W / 2 - visW / 2;
-        let camY = girlY + DISPLAY_H / 2 - visH / 2;
+        // Calculate visible area in world coordinates (accounting for zoom)
+        const visibleWidth = screenWidth / currentZoom;
+        const visibleHeight = screenHeight / currentZoom;
 
-        // Clamp camera to map edges
-        camX = Math.max(0, Math.min(MAP_W - visW, camX));
-        camY = Math.max(0, Math.min(MAP_H - visH, camY));
+        // Calculate player's center position in world coordinates
+        const playerCenterX = girlX + DISPLAY_W / 2;
+        const playerCenterY = girlY + DISPLAY_H / 2;
 
+        // Position camera so player center is at screen center
+        let camX = playerCenterX - visibleWidth / 2;
+        let camY = playerCenterY - visibleHeight / 2;
+
+        // Mobile: shift camera left to show more of the left side
+        if (isMobile) {
+            camX -= visibleWidth * 0.15;
+        }
+
+        // Clamp camera to map edges to prevent showing outside the map
+        // Ensure we don't try to show area beyond the map boundaries
+        const maxCamX = Math.max(0, MAP_W - visibleWidth);
+        const maxCamY = Math.max(0, MAP_H - visibleHeight);
+        camX = Math.max(0, Math.min(maxCamX, camX));
+        camY = Math.max(0, Math.min(maxCamY, camY));
+
+        // Apply camera transform
         scene.style.transformOrigin = '0 0';
-        scene.style.transform = `scale(${ZOOM}) translate(${-camX}px, ${-camY}px)`;
+        scene.style.transform = `scale(${currentZoom}) translate(${-camX}px, ${-camY}px)`;
     }
 
     // WASD movement
@@ -418,6 +466,140 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Mobile Touch Controls
+    if (isMobile) {
+        const mobileControls = document.getElementById('mobileControls');
+        const joystickContainer = document.getElementById('joystickContainer');
+        const joystickStick = document.getElementById('joystickStick');
+        const interactButton = document.getElementById('interactButton');
+
+        mobileControls.style.display = 'block';
+
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+        let joystickDeltaX = 0;
+        let joystickDeltaY = 0;
+
+        // Joystick touch handling
+        joystickContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickActive = true;
+            const touch = e.touches[0];
+            const rect = joystickContainer.getBoundingClientRect();
+            joystickStartX = rect.left + rect.width / 2;
+            joystickStartY = rect.top + rect.height / 2;
+        });
+
+        let lastJoystickDirection = null;
+
+        joystickContainer.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!joystickActive) return;
+
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - joystickStartX;
+            const deltaY = touch.clientY - joystickStartY;
+
+            // Limit joystick movement to base radius
+            const baseRadius = isIPad ? 75 : 60;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const clampedDistance = Math.min(distance, baseRadius);
+
+            if (distance > 0) {
+                joystickDeltaX = (deltaX / distance) * clampedDistance;
+                joystickDeltaY = (deltaY / distance) * clampedDistance;
+            }
+
+            // Move the stick visually
+            joystickStick.style.left = `calc(50% + ${joystickDeltaX}px)`;
+            joystickStick.style.top = `calc(50% + ${joystickDeltaY}px)`;
+
+            // Update movement keys based on joystick direction
+            const deadzone = 10;
+            keysDown = {};
+
+            if (Math.abs(joystickDeltaX) > deadzone || Math.abs(joystickDeltaY) > deadzone) {
+                // Determine new direction
+                let newDirection;
+                if (Math.abs(joystickDeltaX) > Math.abs(joystickDeltaY)) {
+                    // Horizontal movement dominant
+                    if (joystickDeltaX > deadzone) {
+                        newDirection = 'd';
+                    } else if (joystickDeltaX < -deadzone) {
+                        newDirection = 'a';
+                    }
+                } else {
+                    // Vertical movement dominant
+                    if (joystickDeltaY > deadzone) {
+                        newDirection = 's';
+                    } else if (joystickDeltaY < -deadzone) {
+                        newDirection = 'w';
+                    }
+                }
+
+                if (newDirection) {
+                    keysDown[newDirection] = true;
+
+                    // Only update sprite and animation if direction changed
+                    if (newDirection !== lastJoystickDirection) {
+                        girlDirection = newDirection;
+                        lastJoystickDirection = newDirection;
+
+                        if (girlAnimInterval) clearInterval(girlAnimInterval);
+                        setupImg(girlImg, girlSprites[girlDirection]);
+                        girlAnimInterval = startAnimation(girlImg);
+                    }
+
+                    // Ensure girlMoving is always true while joystick is active
+                    girlMoving = true;
+                }
+            }
+        });
+
+        const endJoystick = () => {
+            joystickActive = false;
+            joystickDeltaX = 0;
+            joystickDeltaY = 0;
+            joystickStick.style.left = '50%';
+            joystickStick.style.top = '50%';
+            keysDown = {};
+            girlMoving = false;
+            lastJoystickDirection = null;
+            stopAnimation(girlImg, girlAnimInterval);
+            girlAnimInterval = null;
+        };
+
+        joystickContainer.addEventListener('touchend', endJoystick);
+        joystickContainer.addEventListener('touchcancel', endJoystick);
+
+        // Interact button handling
+        interactButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (nearBoy && !proposalStarted) {
+                proposalStarted = true;
+                interactPrompt.style.display = 'none';
+
+                // Stop boy movement
+                boyIsWalking = false;
+                if (boyAnimInterval) clearInterval(boyAnimInterval);
+                boyAnimInterval = null;
+                lastIdleDir = null;
+
+                showProposalDialogue();
+            }
+        });
+
+        // Update interact button state based on proximity
+        setInterval(() => {
+            if (nearBoy && !proposalStarted) {
+                interactButton.classList.remove('disabled');
+            } else {
+                interactButton.classList.add('disabled');
+            }
+        }, 100);
+    }
+
     // Collision detection
     function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
         return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
@@ -432,15 +614,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function updateBounds() {
-        BOUNDS.minX = MAP_W * 0.05;
-        BOUNDS.maxX = MAP_W * 0.95;
-        BOUNDS.minY = MAP_H * 0.05;
-        BOUNDS.maxY = MAP_H * 0.95;
+        if (isMobile) {
+            // Mobile: slightly adjusted bounds for better gameplay area
+            BOUNDS.minX = MAP_W * 0.10;
+            BOUNDS.maxX = MAP_W * 0.90;
+            BOUNDS.minY = MAP_H * 0.10;
+            BOUNDS.maxY = MAP_H * 0.90;
+        } else {
+            BOUNDS.minX = MAP_W * 0.05;
+            BOUNDS.maxX = MAP_W * 0.95;
+            BOUNDS.minY = MAP_H * 0.05;
+            BOUNDS.maxY = MAP_H * 0.95;
+        }
     }
 
 
     function checkWorldCollision(px, py) {
-        const padding = 120;
+        const padding = 180;
         const playerX = px + padding;
         const playerY = py + padding;
         const playerW = DISPLAY_W - padding * 2;
@@ -454,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Boy
         if (rectsOverlap(playerX, playerY, playerW, playerH,
-            boyX + 120, boyY + 120, DISPLAY_W - 240, DISPLAY_H - 240)) {
+            boyX + 180, boyY + 180, DISPLAY_W - 360, DISPLAY_H - 360)) {
             return true;
         }
 
@@ -463,6 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Game loop
     function gameLoop() {
+        // Wait for map initialization before running game logic
+        if (!mapInitialized) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
         let newX = girlX;
         let newY = girlY;
 
@@ -618,11 +814,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const celebration = document.createElement('div');
             celebration.className = 'celebration';
             celebration.innerHTML = `
-                <h1>Guess I have to get you a Valentine's Day gift now.</h1>
-                <p>I love you Venice, you're my everything. Kiss Kiss</p>
-                <p style="margin-top: 10px;">Thank you for being my Valentine's!</p>
-                <p style="margin-top: 20px;">Love Josh</p>
-                <button class="restart-btn" id="restartBtn">Play Again?</button>
+                <img src="assets/images/ending.png" alt="Happy couple" class="celebration-bg">
+                <div class="celebration-content">
+                    <h1>Guess I have to get you a Valentine's Day gift now.</h1>
+                    <p>I love you Venice, you're my everything. Kiss Kiss. Thank you for being my Valentine's!</p>
+                    <p style="margin-top: 20px;">Love, Josh</p>
+                    <button class="restart-btn" id="restartBtn">Play Again?</button>
+                </div>
             `;
             document.body.appendChild(celebration);
             document.getElementById('restartBtn').addEventListener('click', restartGame);

@@ -12,6 +12,19 @@ html, body {
     background-color: #000;
     width: 100%;
     height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Mobile: ensure no border/cutoff */
+@media (max-width: 768px) {
+    html, body {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
 }
 
 .game-container {
@@ -19,6 +32,17 @@ html, body {
     height: 100vh;
     position: relative;
     overflow: hidden;
+}
+
+/* Mobile: prevent any border overflow */
+@media (max-width: 768px) {
+    .game-container {
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
 }
 
 .scene {
@@ -42,16 +66,24 @@ html, body {
     z-index: 0;
 }
 
+/* Mobile: ensure video fills the entire map, not the viewport */
+@media (max-width: 768px) {
+    .scene-bg {
+        object-fit: fill;
+    }
+}
+
 /* Character container - clips to show one frame */
 .character {
     position: absolute;
-    width: 512px;
-    height: 680px;
+    width: 180px;
+    height: 238px;
     overflow: hidden;
     z-index: 1;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
+    transform-origin: center center;
 }
 
 .interact-prompt {
@@ -87,13 +119,13 @@ html, body {
 .girl {
     left: 60%;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(2.0);
 }
 
 .boy {
     left: 30%;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(2.0);
 }
 
 /* Dialogue box (Stardew Valley style) */
@@ -110,6 +142,14 @@ html, body {
     padding: 20px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
     z-index: 1000;
+}
+
+/* Mobile: Move dialogue to top */
+@media (max-width: 768px) {
+    .dialogue-box {
+        top: 20px;
+        bottom: auto;
+    }
 }
 
 .dialogue-inner {
@@ -227,28 +267,88 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 192, 203, 0.9);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     z-index: 2000;
     animation: fadeIn 0.5s ease-in;
+    overflow: hidden;
+}
+
+.celebration-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.celebration-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 40px;
+    background: linear-gradient(to top, rgba(255, 183, 77, 0.95) 0%, rgba(255, 183, 77, 0.85) 70%, transparent 100%);
+    width: 100%;
+    padding-top: 60px;
+}
+
+/* Mobile: Move text to top */
+@media (max-width: 768px) {
+    .celebration {
+        justify-content: flex-start;
+    }
+
+    .celebration-content {
+        background: linear-gradient(to bottom, rgba(255, 183, 77, 0.95) 0%, rgba(255, 183, 77, 0.85) 70%, transparent 100%);
+        padding-top: 40px;
+        padding-bottom: 20px;
+    }
 }
 
 .celebration h1 {
     font-size: 32px;
-    color: #ff1493;
+    color: #8b4513;
     text-align: center;
     margin-bottom: 20px;
-    text-shadow: 3px 3px 0 #fff;
+    text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+    padding: 0 20px;
 }
 
 .celebration p {
     font-size: 16px;
-    color: #c71585;
+    color: #5d2e0f;
     text-align: center;
     line-height: 1.8;
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+    padding: 0 20px;
+}
+
+/* Mobile text sizing */
+@media (max-width: 768px) {
+    .celebration h1 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .celebration p {
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .restart-btn {
+        font-size: 12px;
+        padding: 12px 24px;
+        margin-top: 20px;
+    }
 }
 
 .restart-btn {
@@ -256,16 +356,17 @@ html, body {
     font-size: 14px;
     padding: 15px 30px;
     margin-top: 30px;
-    background-color: #ff1493;
+    background-color: #d65d7a;
     color: #fff;
-    border: 3px solid #c71585;
+    border: 3px solid #a94460;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .restart-btn:hover {
-    background-color: #ff69b4;
+    background-color: #e67a93;
     transform: scale(1.1);
 }
 
@@ -279,8 +380,110 @@ html, body {
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-    50% { transform: translate(-50%, -50%) translateY(-20px); }
+    0%, 100% { transform: translate(-50%, -50%) translateY(0) scale(2.0); }
+    50% { transform: translate(-50%, -50%) translateY(-20px) scale(2.0); }
+}
+
+/* Mobile Controls */
+.mobile-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1500;
+}
+
+.joystick-container {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    pointer-events: all;
+}
+
+.joystick-base {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    backdrop-filter: blur(5px);
+}
+
+.joystick-stick {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+
+.interact-button {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(139, 69, 19, 0.8);
+    border: 4px solid rgba(93, 46, 15, 0.9);
+    color: #fff;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: all;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.interact-button:active {
+    transform: scale(0.9);
+    background: rgba(160, 82, 45, 0.9);
+}
+
+.interact-button.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* iPad specific scaling */
+.device-ipad .joystick-base {
+    width: 150px;
+    height: 150px;
+}
+
+.device-ipad .joystick-stick {
+    width: 65px;
+    height: 65px;
+}
+
+.device-ipad .interact-button {
+    width: 100px;
+    height: 100px;
+    font-size: 28px;
+}
+
+.device-ipad .joystick-container {
+    bottom: 60px;
+    left: 60px;
+}
+
+.device-ipad .interact-button {
+    bottom: 60px;
+    right: 60px;
 }
 
 /* Responsive */

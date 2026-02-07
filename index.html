@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Will you be my Valentine? 💕</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="scene">
+            <video class="scene-bg" src="assets/video/background.mp4" autoplay muted loop playsinline></video>
+            <!-- Characters are <img> tags, swapped by JS -->
+            <div class="character girl" id="girl">
+                <img id="girlImg" src="assets/sprites/girl-front-run.png" alt="girl">
+            </div>
+
+            <div class="character boy" id="boy">
+                <img id="boyImg" src="assets/sprites/boy-idle-front.png" alt="boy">
+            </div>
+        </div>
+
+        <!-- Dialogue box -->
+        <div class="dialogue-box" id="dialogueBox" style="display: none;">
+            <div class="dialogue-inner">
+                <div class="dialogue-portrait">
+                    <img id="portraitImg" src="assets/images/boy-portrait.png" alt="boy portrait">
+                </div>
+                <div class="dialogue-content">
+                    <p id="dialogueText"></p>
+                </div>
+            </div>
+            <div class="dialogue-choices" id="dialogueChoices" style="display: none;">
+                <button class="choice-btn" id="yesBtn">Yes! ❤️</button>
+                <button class="choice-btn" id="noBtn">No...</button>
+            </div>
+        </div>
+
+        <div class="hearts-container" id="heartsContainer"></div>
+
+        <!-- Touch controls for mobile -->
+        <div class="mobile-controls" id="mobileControls" style="display: none;">
+            <div class="joystick-container" id="joystickContainer">
+                <div class="joystick-base">
+                    <div class="joystick-stick" id="joystickStick"></div>
+                </div>
+            </div>
+            <button class="interact-button" id="interactButton">E</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
